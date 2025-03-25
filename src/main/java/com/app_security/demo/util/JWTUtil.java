@@ -3,16 +3,21 @@ package com.app_security.demo.util;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
+import java.security.Key;
 import java.util.Date;
 import java.util.function.Function;
 
 @Component
 public class JWTUtil {
 
+    // Generate a secure key for HS512. In production, store and retrieve this key securely.
+    private final Key secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+
     // In production, store this secret securely (e.g., in environment variables)
-    private final String SECRET_KEY = "YourSecretKeyForJWTGeneration";
+//    private final String SECRET_KEY = "YourSecretKeyForJWTGeneration";
 
     // Token validity in milliseconds (e.g., 1 hour)
     private final long JWT_TOKEN_VALIDITY = 60 * 60 * 1000;
@@ -25,7 +30,7 @@ public class JWTUtil {
                 .setSubject(username)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
-                .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
+                .signWith(secretKey,SignatureAlgorithm.HS512)
                 .compact();
     }
 
@@ -48,8 +53,9 @@ public class JWTUtil {
 
     // Generic method to extract claims
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = Jwts.parser()
-                .setSigningKey(SECRET_KEY)
+        final Claims claims = Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
                 .parseClaimsJws(token)
                 .getBody();
         return claimsResolver.apply(claims);
