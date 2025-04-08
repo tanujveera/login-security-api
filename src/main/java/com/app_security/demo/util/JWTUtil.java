@@ -22,6 +22,10 @@ public class JWTUtil {
     // Token validity in milliseconds (e.g., 1 hour)
     private final long JWT_TOKEN_VALIDITY = 60 * 60 * 1000;
 
+    public JWTUtil() {
+        System.out.println(" Secret Key: "+secretKey.getAlgorithm()+" "+secretKey.getEncoded()+" "+secretKey.getFormat());
+    }
+
     // Generate token for user
     public String generateToken(String username) {
         Date now = new Date();
