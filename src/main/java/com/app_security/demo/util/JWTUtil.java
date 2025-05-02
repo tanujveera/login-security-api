@@ -1,11 +1,16 @@
 package com.app_security.demo.util;
 
+import com.app_security.demo.model.AppProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.function.Function;
@@ -13,17 +18,25 @@ import java.util.function.Function;
 @Component
 public class JWTUtil {
 
+    private AppProperties appProperties;
+    private Key secretKey;
+
     // Generate a secure key for HS512. In production, store and retrieve this key securely.
-    private final Key secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+//    private final Key secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
 
     // In production, store this secret securely (e.g., in environment variables)
 //    private final String SECRET_KEY = "YourSecretKeyForJWTGeneration";
 
+    @PostConstruct
+    public void init(){
+        this.secretKey = new SecretKeySpec(appProperties.getJwtSecret().getBytes(StandardCharsets.UTF_8),SignatureAlgorithm.HS512.getJcaName());
+    }
+
     // Token validity in milliseconds (e.g., 1 hour)
     private final long JWT_TOKEN_VALIDITY = 60 * 60 * 1000;
 
-    public JWTUtil() {
-        System.out.println(" Secret Key: "+secretKey.getAlgorithm()+" "+secretKey.getEncoded()+" "+secretKey.getFormat());
+    public JWTUtil(AppProperties appProperties) {
+        this.appProperties = appProperties;
     }
 
     // Generate token for user

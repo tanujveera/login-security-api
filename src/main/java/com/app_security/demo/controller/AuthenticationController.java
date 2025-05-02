@@ -1,12 +1,11 @@
 package com.app_security.demo.controller;
 
-import com.app_security.demo.model.AuthRequest;
-import com.app_security.demo.model.AuthResponse;
-import com.app_security.demo.model.RegisterRequest;
-import com.app_security.demo.model.User;
+import com.app_security.demo.model.*;
 import com.app_security.demo.repository.UserRepository;
 import com.app_security.demo.util.JWTUtil;
+import io.jsonwebtoken.JwtException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -36,26 +35,31 @@ public class AuthenticationController {
 
     // Login endpoint to authenticate user and issue JWT
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest authRequest) {
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@RequestBody AuthRequest authRequest) {
         try {
             // Authenticate the user
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword())
             );
         } catch (BadCredentialsException ex) {
-            return ResponseEntity.status(401).build();
+            AuthResponse authResponse = new AuthResponse("");
+            ApiResponse<AuthResponse> response = new ApiResponse<>(401,"Login Unsuccessful: Invalid username password",authResponse);
+            return ResponseEntity.badRequest().body(response);
         }
         // Generate JWT token
         String token = jwtUtil.generateToken(authRequest.getUsername());
-        return ResponseEntity.ok(new AuthResponse(token));
+        AuthResponse authResponse = new AuthResponse(token);
+        ApiResponse<AuthResponse> response = new ApiResponse<>(200,"Login Successful",authResponse);
+        return ResponseEntity.ok(response);
     }
 
     // Signup endpoint for user registration
     @PostMapping("/signup")
-    public ResponseEntity<String> signup(@RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<ApiResponse> signup(@RequestBody RegisterRequest registerRequest) {
         // Check if a user with the given username already exists
         if (userRepository.findByUsername(registerRequest.getUsername()).isPresent()) {
-            return ResponseEntity.badRequest().body("Username is already taken");
+            ApiResponse<String> response = new ApiResponse<>(400,"Username is already taken",null);
+            return ResponseEntity.badRequest().body(response);
         }
 
         // Create a new User entity
@@ -64,11 +68,34 @@ public class AuthenticationController {
         // Encrypt the password before storing it
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         // Set default role (adjust as needed)
-        user.setRoles("ROLE_USER");
-
+        if(null != registerRequest.getRole() && !registerRequest.getRole().isEmpty()) {
+            user.setRoles(registerRequest.getRole());
+        } else {
+            user.setRoles("ROLE_USER");
+        }
         // Save the user in the database
         userRepository.save(user);
+        ApiResponse<String> response = new ApiResponse<>(200,"User registered successfully","User saved");
+        return ResponseEntity.ok(response);
+    }
 
-        return ResponseEntity.ok("User registered successfully");
+    @GetMapping("/validate")
+    public ResponseEntity<ApiResponse<String>> validateToken(@RequestHeader("Authorization") String tokenHeader) {
+        try {
+            String token = tokenHeader.replace("Bearer ", "");
+            String username = jwtUtil.extractUsername(token);
+            boolean isValid = jwtUtil.validateToken(token, username);
+            if (!isValid) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>(401, "Token is invalid", "false"));
+            }
+            return ResponseEntity.ok(new ApiResponse<>(200, "Token is valid", "true"));
+        } catch (JwtException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(401, "Token is invalid or expired", "false"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(500, "Internal error validating token", "false"));
+        }
     }
 }
