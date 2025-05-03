@@ -55,7 +55,7 @@ public class AuthenticationController {
 
     // Signup endpoint for user registration
     @PostMapping("/signup")
-    public ResponseEntity<ApiResponse> signup(@RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<ApiResponse<String>> signup(@RequestBody RegisterRequest registerRequest) {
         // Check if a user with the given username already exists
         if (userRepository.findByUsername(registerRequest.getUsername()).isPresent()) {
             ApiResponse<String> response = new ApiResponse<>(400,"Username is already taken",null);
