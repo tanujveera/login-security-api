@@ -7,7 +7,7 @@ This microservice handles user registration, credential validation, and JWT intr
 ---
 
 # Architecture Overview
-
+![img.png](img.png)
 
 ---
 
@@ -100,7 +100,7 @@ mvn spring-boot:run
 
 ---
 
-# Usage Examples
+# API CURL Scripts
 
 1. Signup
 ```
